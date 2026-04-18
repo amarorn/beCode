@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Define defaults that cascade correctly */
+  body {
+    @apply text-content bg-surface font-sans antialiased;
+  }
+  
+  /* The dark class applies to html/body or the top-level shell container */
+  .dark {
+    @apply text-content-dark bg-surface-dark;
+  }
+}
+
+@layer components {
+  /* Common IDE UI Elements that can be composed */
+  .ide-panel {
+    @apply bg-surface-alt border-border border rounded shadow-panel;
+  }
+  
+  .dark .ide-panel {
+    @apply bg-surface-dark-alt border-border-dark;
+  }
+
+  .ide-interactive {
+    @apply cursor-pointer transition-colors duration-150 ease-in-out;
+  }
+
+  .ide-focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-border-focus focus:border-transparent;
+  }
+}
