@@ -1,16 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './components/Button';
 import { Badge } from './components/Badge';
 import { Panel } from './components/Panel';
 import { Input } from './components/Input';
 import { Modal } from './components/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/Table';
+import { CommandPalette } from './components/CommandPalette';
+import { globalCommandRegistry, globalSettingsService, KeybindingService } from './core';
 
 export const App: React.FC = () => {
   const [dark, setDark] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    // 1. Load Settings
+    globalSettingsService.registerSetting({
+      id: 'theme.mode',
+      type: 'string',
+      default: 'dark',
+      description: 'The preferred theme mode (light or dark)'
+    });
+    globalSettingsService.load();
+    
+    const savedTheme = globalSettingsService.get('theme.mode');
+    setDark(savedTheme === 'dark');
+
+    // 2. Initialize Keybindings
+    const keybindingService = new KeybindingService(globalCommandRegistry);
+    keybindingService.start();
+
+    // 3. Register Base Commands
+    globalCommandRegistry.registerCommand({
+      id: 'theme.toggle',
+      label: 'Toggle Theme',
+      category: 'Preferences',
+      keybinding: 'CmdOrCtrl+T',
+      handler: () => {
+        setDark(prev => {
+          const newDark = !prev;
+          globalSettingsService.set('theme.mode', newDark ? 'dark' : 'light');
+          return newDark;
+        });
+      }
+    });
+
+    globalCommandRegistry.registerCommand({
+      id: 'workspace.settings',
+      label: 'Open Workspace Settings',
+      category: 'Workspace',
+      keybinding: 'CmdOrCtrl+,',
+      handler: () => {
+        setIsModalOpen(true);
+      }
+    });
+
+    globalCommandRegistry.registerCommand({
+      id: 'file.new',
+      label: 'New File',
+      category: 'File',
+      keybinding: 'CmdOrCtrl+N',
+      handler: () => {
+        console.log('New File action executed!');
+      }
+    });
+
+    return () => {
+      keybindingService.stop();
+    };
+  }, []);
+
+  useEffect(() => {
     const root = document.documentElement;
     if (dark) root.classList.add('dark');
     else root.classList.remove('dark');
@@ -24,14 +83,22 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface dark:bg-surface-dark p-lg space-y-lg text-content dark:text-content-dark">
+      <CommandPalette />
+      
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">beCode UI — Demo</h1>
           <p className="text-content-muted dark:text-content-dark-muted text-sm">
-            Showcase dos componentes do design system da IDE.
+            Pressione <kbd className="bg-surface-muted dark:bg-surface-dark-muted px-1 rounded">Cmd/Ctrl + P</kbd> para abrir a Command Palette.
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => setDark((v) => !v)}>
+        <Button variant="secondary" size="sm" onClick={() => {
+          setDark((v) => {
+            const newDark = !v;
+            globalSettingsService.set('theme.mode', newDark ? 'dark' : 'light');
+            return newDark;
+          });
+        }}>
           {dark ? 'Light mode' : 'Dark mode'}
         </Button>
       </header>
@@ -82,9 +149,12 @@ export const App: React.FC = () => {
         </Panel>
 
         <Panel title="Modals & Dialogs">
-          <div className="flex items-center h-full">
+          <div className="flex items-center h-full gap-2">
             <Button variant="primary" onClick={() => setIsModalOpen(true)}>
               Open Settings Modal
+            </Button>
+            <Button variant="secondary" onClick={() => globalCommandRegistry.executeCommand('core.showCommandPalette')}>
+              Open Command Palette
             </Button>
           </div>
         </Panel>
